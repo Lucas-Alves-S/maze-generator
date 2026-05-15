@@ -18,7 +18,9 @@ def main():
         solver=GreedySolver(),
     )
     maze.generate()
-    maze.solve_and_display(delay=0.1) # TODO: function to call the solver and display the solution step by step
+    maze.solve_and_display(
+        delay=0.1
+    )  # TODO: function to call the solver and display the solution step by step
 
 
 if __name__ == "__main__":
