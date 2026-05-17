@@ -57,21 +57,34 @@ class Maze:
         if self.solver is None:
             raise RuntimeError("No solver configured.")
 
+        results: list[tuple[list | None, list, tuple, tuple]] = []
         for start in self.entrances:
             for goal in self.exits:
                 path, visited = self.solver.solve(self.grid, start, goal)
-                label = f"Entrance {start} -> Exit {goal}"
-                self._animate(visited, path, start, goal, label, delay)
-                if path:
-                    self._render(
-                        set(visited), set(path), start, goal, label, current=None
-                    )
-                    print(
-                        f"\nSolved in {len(path) - 1} steps  ({len(visited)} cells explored)"
-                    )
-                else:
-                    print("\nNo path found.")
-                time.sleep(1.0)
+                results.append((path, visited, start, goal))
+
+        for path, visited, start, goal in results:
+            label = f"Entrance {start} -> Exit {goal}"
+            self._animate(visited, path, {start}, {goal}, label, delay)
+            time.sleep(0.5)
+
+        all_paths: set[tuple[int, int]] = set()
+        all_visited: set[tuple[int, int]] = set()
+        solved = sum(1 for path, *_ in results if path)
+        for path, visited, _, _ in results:
+            if path:
+                all_paths.update(path)
+            all_visited.update(visited)
+
+        self._render(
+            all_visited,
+            all_paths,
+            set(self.entrances),
+            set(self.exits),
+            f"All solutions — {solved}/{len(results)} paths found",
+            current=None,
+        )
+        print(f"\n{solved} path(s) found across {len(results)} entrance-exit pair(s).")
 
     # ------------------------------------------------------------------
     # Rendering
@@ -81,8 +94,8 @@ class Maze:
         self,
         visited: list[tuple[int, int]],
         path: list[tuple[int, int]] | None,
-        start: tuple[int, int],
-        goal: tuple[int, int],
+        starts: set[tuple[int, int]],
+        goals: set[tuple[int, int]],
         label: str,
         delay: float,
     ) -> None:
@@ -95,8 +108,8 @@ class Maze:
             self._render(
                 visited_set,
                 path_set if is_last else set(),
-                start,
-                goal,
+                starts,
+                goals,
                 label,
                 current=None if is_last else cell,
             )
@@ -106,8 +119,8 @@ class Maze:
         self,
         visited: set[tuple[int, int]],
         path: set[tuple[int, int]],
-        start: tuple[int, int],
-        goal: tuple[int, int],
+        starts: set[tuple[int, int]],
+        goals: set[tuple[int, int]],
         label: str,
         current: tuple[int, int] | None,
     ) -> None:
@@ -133,9 +146,9 @@ class Maze:
             for c in range(cols):
                 cell_line += " " if not grid[r][c].walls[WEST] else "|"
                 pos = (r, c)
-                if pos == start:
+                if pos in starts:
                     cell_line += "S "
-                elif pos == goal:
+                elif pos in goals:
                     cell_line += "E "
                 elif pos == current:
                     cell_line += "@ "
